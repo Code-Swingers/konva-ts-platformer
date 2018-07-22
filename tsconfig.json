@@ -1,0 +1,31 @@
+{
+  "compilerOptions" : {
+      "watch" : true,
+      "declaration" : false,
+      "noImplicitAny" : true,
+      "target" : "es2017",
+      "module" : "esnext",
+      "moduleResolution": "node",
+      "jsx": "react",
+      "sourceMap": true,
+      "experimentalDecorators": true,
+      "lib": ["es5", "dom", "es2015", "es2015.core", "es7"],
+      "allowSyntheticDefaultImports": true,
+      "typeRoots": [
+          "node_modules/@types",
+      ],
+      "baseUrl": "../",
+      "paths": {
+          "react": ["node_modules/@types/react"]
+      },
+      "traceResolution": true,
+      "skipLibCheck": true
+  },
+  "exclude" : [
+      "(__tests__|test)",
+      "test",
+      "node_modules",
+      "dist",
+      "**/__tests__/*"
+  ]
+}
