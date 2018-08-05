@@ -1,4 +1,4 @@
-export interface ControlKeys{
+export interface ControlKeys {
   ArrowLeft: boolean;
   ArrowRight: boolean;
   ArrowUp: boolean;
@@ -19,7 +19,8 @@ export class Vec {
 }
 
 export class Player {
-  size: Vec;
+  size = new Vec(0.8, 1.5);
+
   constructor(public pos: Vec, public speed: Vec) {}
 
   get type() {
@@ -59,9 +60,9 @@ export class Player {
   };
 }
 
-Player.prototype.size = new Vec(0.8, 1.5);
-
 export class Lava {
+  size = new Vec(1, 1);
+
   constructor(
     public pos: Vec,
     public speed: Vec,
@@ -81,10 +82,29 @@ export class Lava {
       return new Lava(pos, new Vec(0, 3), pos);
     }
   }
+
+  update(time: number, state: State, keys: ControlKeys) {
+    let newPos = this.pos.plus(this.speed.times(time));
+    if (!state.level.touches(newPos, this.size, "wall")) {
+      return new Lava(newPos, this.speed, this.reset);
+    } else if (this.reset) {
+      return new Lava(this.reset, this.speed, this.reset);
+    } else {
+      return new Lava(this.pos, this.speed.times(-1));
+    }
+  }
+
+  collide(state: State) {
+    return new State(state.level, state.actors, GameStatus.Lost);
+  }
 }
 
 export class Coin {
-  size: Vec;
+  size = new Vec(0.6, 0.6);
+
+  readonly wobbleSpeed = 8;
+  readonly wobbleDist = 0.07;
+
   constructor(
     public pos: Vec,
     public basePos: Vec,
@@ -100,9 +120,28 @@ export class Coin {
     return new Coin(basePos, basePos,
       Math.random() * Math.PI * 2);
   }
-}
 
-Coin.prototype.size = new Vec(0.6, 0.6);
+  collide(state: State) {
+    let filtered = state.actors.filter(a => a != this);
+    let status = state.status;
+    if (!filtered.some(a => a.type === "coin")) {
+      status = GameStatus.Won;
+    }
+
+    return new State(state.level, filtered, status);
+  }
+
+  update(time: number, state: State, keys: ControlKeys) {
+    let wobble = this.wobble + time * this.wobbleSpeed;
+    let wobblePos = Math.sin(wobble) * this.wobbleDist;
+
+    return new Coin(
+      this.basePos.plus(new Vec(0, wobblePos)),
+      this.basePos,
+      wobble
+    );
+  }
+}
 
 enum GameStatus {
   Playing = 'playing',
@@ -125,21 +164,20 @@ export class State {
     return this.actors.find(a => a.type === "player");
   }
 
-  update(time: number, keys) {
-    let actors = this.actors
-      .map(actor => actor.update(time, this, keys));
+  update(time: number, keys: ControlKeys) {
+    let actors = this.actors.map(actor => actor.update(time, this, keys));
     let newState = new State(this.level, actors, this.status);
   
-    if (newState.status != "playing") return newState;
+    if (newState.status !== GameStatus.Playing) return newState;
   
     let player = newState.player;
     if (this.level.touches(player.pos, player.size, "lava")) {
-      return new State(this.level, actors, "lost");
+      return new State(this.level, actors, GameStatus.Lost);
     }
   
     for (let actor of actors) {
-      if (actor != player && overlap(actor, player)) {
-        newState = actor.collide(newState);
+      if (actor !== player && overlap(actor, player)) {
+        newState = (actor as Coin | Lava).collide(newState);
       }
     }
     return newState;
@@ -147,10 +185,10 @@ export class State {
   
 }
 
-export function trackKeys(keys) {
+export function trackKeys(keys: ControlKeys[]) {
   let down = Object.create(null);
 
-  function track(event) {
+  function track(event: any) {
     if (keys.includes(event.key)) {
       down[event.key] = event.type == "keydown";
       event.preventDefault();
@@ -179,6 +217,8 @@ const levelChars: {[key: string]: any } = {
   "v": Lava,
 };
 
+export type GameActors = Array<Player | Coin | Lava>;
+
 export class Level {
   rows: any[][];
   height: number;
@@ -204,7 +244,7 @@ export class Level {
       });
     });
   }
-  touches(pos: Vec, size: number, type: string) {
+  touches(pos: Vec, size: Vec, type: string) {
     let xStart = Math.floor(pos.x);
     let xEnd = Math.ceil(pos.x + size.x);
     let yStart = Math.floor(pos.y);

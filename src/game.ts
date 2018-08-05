@@ -6,7 +6,7 @@ export class Game {
     public plans: string[],
     public render: any,
   ) {
-    this.arrowKeys = trackKeys(["ArrowLeft", "ArrowRight", "ArrowUp"]);
+    this.arrowKeys = trackKeys(["ArrowLeft", "ArrowRight", "ArrowUp"] as any);
   }
 
   async runGame() {
@@ -14,7 +14,7 @@ export class Game {
       const lvl = new Level(this.plans[level]);
       
       let status = await this.runLevel(lvl, this.render);
-      if (status == "won") level++;
+      if (status === "won") level++;
     }
     console.log("You've won!");
   }
@@ -27,6 +27,7 @@ export class Game {
     let lastTime: number | null = null;
   
     function frame(time: number) {
+      
       if (lastTime != null) {
         let timeStep = Math.min(time - lastTime, 100) / 1000;
 
@@ -43,8 +44,7 @@ export class Game {
     requestAnimationFrame(frame);
   }
   
-  runLevel(level: Level, Display: any) {
-    let display = new Display(document.body, level);
+  runLevel(level: Level, display: any) {
     let state = State.start(level);
     let ending = 1;
 

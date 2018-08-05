@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import Konva from 'konva';
 import { render } from 'react-dom';
-import { Stage, Layer, Star, Text, Rect} from 'react-konva';
+import { Stage, Layer, Star, Text, Rect, Group} from 'react-konva';
 import { Game } from './game';
 import { GAME_LEVELS } from './gameLevels';
-import { Player, Coin, Lava } from './gameObjects';
+import { Player, Coin, Lava, GameActors, State } from './gameObjects';
 
 let simpleLevelPlan = `
 ......................
@@ -17,36 +17,80 @@ let simpleLevelPlan = `
 ......##############..
 ......................`;
 
-class App extends Component {
+interface AppState {
+  actors: GameActors
+}
+
+class App extends Component<{}, AppState> {
   game: Game;
+  viewportWidth = 600;
+  viewportHeight = 450;
+
+  state = {
+    scale: 20,
+    actors: [] as GameActors,
+  };
+
   componentWillMount() {
-    this.game = new Game(GAME_LEVELS, null);
+    this.game = new Game(GAME_LEVELS, this);
+    this.game.runGame();
   }
-  handleDragStart = (e: any) => {
-    e.target.setAttrs({
-      shadowOffset: {
-        x: 15,
-        y: 15
-      },
-      scaleX: 1.1,
-      scaleY: 1.1
-    });
-  };
-  handleDragEnd = (e: any) => {
-    e.target.to({
-      duration: 0.5,
-      easing: Konva.Easings.ElasticEaseOut,
-      scaleX: 1,
-      scaleY: 1,
-      shadowOffsetX: 5,
-      shadowOffsetY: 5
-    });
-  };
+
+  syncState(state: State) {
+    this.drawActors(state.actors);
+    this.scrollPlayerIntoView(state);
+  }
+
+  scrollPlayerIntoView(state: State) {
+    let width = this.viewportWidth;
+    let height = this.viewportHeight;
+    let margin = width / 3;
+  
+    // The viewport
+    // let left = this.dom.scrollLeft;
+    // let right = left + width;
+
+    // let top = this.dom.scrollTop;
+    // let bottom = top + height;
+  
+    // let player = state.player;
+    // let center = player.pos.plus(player.size.times(0.5)).times(this.state.scale);
+  
+    // if (center.x < left + margin) {
+    //   this.dom.scrollLeft = center.x - margin;
+    // } else if (center.x > right - margin) {
+    //   this.dom.scrollLeft = center.x + margin - width;
+    // }
+    // if (center.y < top + margin) {
+    //   this.dom.scrollTop = center.y - margin;
+    // } else if (center.y > bottom - margin) {
+    //   this.dom.scrollTop = center.y + margin - height;
+    // }
+  }
+
+  drawActors(actors: GameActors) {
+    this.setState({ actors });
+    // return elt("div", {}, ...actors.map(actor => {
+    //   let rect = elt("div", {
+    //     class: `actor ${actor.type}`
+    //   });
+    //   rect.style.width = `${actor.size.x * scale}px`;
+    //   rect.style.height = `${actor.size.y * scale}px`;
+    //   rect.style.left = `${actor.pos.x * scale}px`;
+    //   rect.style.top = `${actor.pos.y * scale}px`;
+    //   return rect;
+    // }));
+  }
+  
+  clear() {
+
+  }
+
   render() {
     const level = this.game.getLevelByPlan(simpleLevelPlan);
 
     return (
-      <Stage width={window.innerWidth} height={window.innerHeight}>
+      <Stage width={this.viewportWidth} height={this.viewportHeight}>
         <Layer>
           { level.rows.map((r, colIdx) => {
             return r.map((elt, rowIndex) => {
@@ -55,10 +99,10 @@ class App extends Component {
                 case 'empty': {
                   return <Rect
                   key={key}
-                  width={20}
-                  height={20}
-                  x={rowIndex * 20}
-                  y={colIdx * 20}
+                  width={this.state.scale}
+                  height={this.state.scale}
+                  x={rowIndex * this.state.scale}
+                  y={colIdx * this.state.scale}
                   fill="#777"
                   opacity={1}
                 />;
@@ -66,10 +110,10 @@ class App extends Component {
                 case 'wall': {
                   return <Rect
                   key={key}
-                  width={20}
-                  height={20}
-                  x={rowIndex * 20}
-                  y={colIdx * 20}
+                  width={this.state.scale}
+                  height={this.state.scale}
+                  x={rowIndex * this.state.scale}
+                  y={colIdx * this.state.scale}
                   fill="#ddd"
                   opacity={1}
                 />;
@@ -77,10 +121,10 @@ class App extends Component {
                 case 'lava': {
                   return <Rect
                   key={key}
-                  width={20}
-                  height={20}
-                  x={rowIndex * 20}
-                  y={colIdx * 20}
+                  width={this.state.scale}
+                  height={this.state.scale}
+                  x={rowIndex * this.state.scale}
+                  y={colIdx * this.state.scale}
                   fill="#ff0000"
                   opacity={1}
                 />;
@@ -92,26 +136,28 @@ class App extends Component {
           }) }
         </Layer>
         <Layer>
-        { level.startActors.map((actor, index) => {
+        { this.state.actors.map((actor, index) => {
             if (actor instanceof Player) {
-              return <Rect
-                key={index}
-                width={20}
-                height={20}
-                x={actor.pos.x * 20}
-                y={actor.pos.y * 20}
-                fill="#000000"
-                opacity={1}
-              />
+              return (
+                <Rect
+                  key={index}
+                  width={actor.size.x * this.state.scale}
+                  height={actor.size.y * this.state.scale}
+                  x={actor.pos.x * this.state.scale}
+                  y={actor.pos.y * this.state.scale}
+                  fill="#000000"
+                  opacity={1}
+                />
+              );
             }
 
             if (actor instanceof Coin) {
               return <Rect
                 key={index}
-                width={20}
-                height={20}
-                x={actor.pos.x * 20}
-                y={actor.pos.y * 20}
+                width={actor.size.x * this.state.scale}
+                height={actor.size.x * this.state.scale}
+                x={actor.pos.x * this.state.scale}
+                y={actor.pos.y * this.state.scale}
                 fill="#FFDF00"
                 opacity={1}
               />
