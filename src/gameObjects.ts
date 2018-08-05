@@ -218,13 +218,14 @@ const levelChars: {[key: string]: any } = {
 };
 
 export type GameActors = Array<Player | Coin | Lava>;
+export type GameActor = Player | Coin | Lava;
 
 export class Level {
   rows: any[][];
   height: number;
   width: number;
   startActors: Array<Player | Coin | Lava>;
-  constructor(plan: string) {
+  constructor(public plan: string) {
     let rows = plan.trim().split("\n").map(l => [...l]);
     this.height = rows.length;
     this.width = rows[0].length;
